@@ -1,0 +1,189 @@
+---
+title: "01descriptives"
+author: "Sebastian Sternberg"
+date: "24 9 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+packages <- c("magrittr", "stringr", "ggplot2", "dplyr", "stargazer", "ggplot2", "lubridate", "Hmisc", "ggthemes")
+for (p in packages) {
+  if (p %in% installed.packages()[,1]) require(p, character.only=T)
+  else {
+    install.packages(p)
+    library(p, character.only=T)
+  }
+}
+
+
+rm(list=ls())
+options(stringsAsFactors = F)
+options(warn=2)
+
+
+```
+
+load data. We only need the full data set.
+
+```{r}
+
+full <- read.csv("in/data/full_dataset.csv", encoding = "UTF-8")
+
+full <- full[full$year < 2019, ]
+
+```
+
+create month variable
+```{r}
+
+full$month <- month(full$date) %>% as.factor()
+
+```
+
+Wie viele Entscheidungen pro Tag? Was ist der Tag mit den meisten?
+
+
+```{r}
+
+agg_date <- full %>% group_by(date) %>% tally() 
+
+max(agg_date$n) #17 an einem Tag 
+agg_date$date[agg_date$n == max(agg_date$n)] #1999-12-01
+
+```
+
+
+
+How many decisions in a year on average?
+
+```{r}
+
+agg_year <- full %>% group_by(year) %>% tally() 
+summary(agg_year$n)
+
+agg_year$year[agg_year$n == max(agg_year$n)]
+agg_year$year[agg_year$n == min(agg_year$n)]
+
+
+```
+
+Mean pro Senat:
+
+```{r}
+
+agg_year_senat <- full %>% group_by(year, senat) %>% tally() 
+summary(agg_year$n[agg_year_senat$senat == 1])
+summary(agg_year$n[agg_year_senat$senat == 2])
+
+```
+
+
+Barplot mit Anzahl der Kammerentscheidungen pro Monat aggregiert:
+
+```{r}
+
+monats_namen <- c("Jan", "Feb", "Mrz", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez")
+
+agg_month <- full %>% group_by(month) %>% tally() 
+
+ggplot(agg_month, aes(x = month, y = n)) +
+  geom_bar(stat = "identity", fill= "white", colour = "black") + 
+  geom_hline(yintercept = mean(agg_month$n), linetype="dashed") +
+  ylim(0, 700)+ 
+  scale_x_discrete(breaks=c(paste(1:12)),
+                      labels=monats_namen)+
+  theme_tufte() +
+  theme(axis.title.x = element_blank()) +   # Remove x-axis label
+     ylab("Anzahl Kammerentscheidungen")   
+
+
+```
+
+
+Aggregierte Anzahl von Kammerentscheidungen pro Wochentag
+
+```{r}
+
+agg_weekday <- full %>% group_by(weekday) %>% tally() 
+
+ggplot(agg_weekday, aes(x = weekday, y = n)) +
+  geom_bar(stat = "identity", fill= "white", colour = "black") + 
+  geom_hline(yintercept = mean(agg_weekday$n), linetype="dashed") +
+  scale_x_discrete(limits = c("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")) + 
+  #ylim(0, 1200)+ 
+  # scale_x_discrete(breaks=c(paste(1:12)),
+  #                     labels=monats_namen)+
+  theme_tufte() +
+  theme(axis.title.x = element_blank()) +   # Remove x-axis label
+     ylab("Anzahl Kammerentscheidungen")   
+
+
+#wie viele von Samstag und Sonntag sind BvQs?
+
+table(full$weekday, full$anordnung)
+
+
+```
+
+
+Anzahl an deviations pro Monat:
+
+```{r}
+
+#wie viele wechsel überhaupt:
+prop.table(table(full$wechsel_at_all))
+
+wechsel_month  <- full %>% filter(wechsel_at_all == 1) #440 cases, ignoring any episode
+
+agg_wechsel_month <- wechsel_month %>% group_by(month) %>% tally()
+
+ggplot(agg_wechsel_month, aes(x = month, y = n)) +
+  geom_bar(stat = "identity", fill= "white", colour = "black") + 
+  geom_hline(yintercept = mean(agg_wechsel_month$n), linetype="dashed") +
+  ylim(0,100)+ 
+  scale_x_discrete(breaks=c(paste(1:12)),
+                      labels=monats_namen)+
+  theme_tufte() +
+  theme(axis.title.x = element_blank()) +   # Remove x-axis label
+     ylab("Anzahl Kammerentscheidungen")   
+
+
+```
+
+Aggregierte Anzahl von Vertretungen pro Wochentag
+
+```{r}
+
+
+agg_wechsel_weekday <- wechsel_month %>% group_by(weekday) %>% tally() 
+
+ggplot(agg_wechsel_weekday, aes(x = weekday, y = n)) +
+  geom_bar(stat = "identity", fill= "white", colour = "black") + 
+  geom_hline(yintercept = mean(agg_wechsel_weekday$n), linetype="dashed") +
+  scale_x_discrete(limits = c("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")) + 
+  #ylim(0, 1200)+ 
+  # scale_x_discrete(breaks=c(paste(1:12)),
+  #                     labels=monats_namen)+
+  theme_tufte() +
+  theme(axis.title.x = element_blank()) +   # Remove x-axis label
+     ylab("Anzahl Kammerentscheidungen")   
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
